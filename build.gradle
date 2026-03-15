@@ -1,0 +1,124 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'br.com.dimed'
+version = '0.0.1-SNAPSHOT'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+jar {
+    enabled = false
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', "2024.0.0")
+}
+
+dependencies {
+    implementation project(":common")
+    implementation project(":contract")
+    implementation project(":infrastructure")
+    implementation project(":domain")
+//    implementation project(":job")
+}
+
+allprojects {
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'java'
+
+    repositories {
+        mavenLocal()
+        maven {
+            url 'https://nexus.dimed.com.br/repository/maven-public/'
+        }
+    }
+
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+            mavenBom SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+
+    dependencies {
+        implementation 'io.confluent:kafka-avro-serializer:7.3.2'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
+        implementation 'org.springframework.boot:spring-boot-starter-webflux'
+        implementation 'org.apache.kafka:kafka-streams'
+        implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.5'
+        implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j'
+        implementation 'org.springframework.cloud:spring-cloud-starter-vault-config'
+        implementation 'org.springframework.kafka:spring-kafka'
+        implementation 'org.mapstruct:mapstruct:1.6.3'
+        implementation 'net.javacrumbs.shedlock:shedlock-spring:4.44.0'
+        implementation 'net.javacrumbs.shedlock:shedlock-provider-mongo-reactivestreams:4.44.0'
+        annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+        annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+        implementation 'org.apache.commons:commons-csv:1.5'
+
+        implementation 'org.zalando:logbook-spring-webflux:3.11.0'
+        implementation "de.siegmar:logback-gelf:4.0.2"
+
+        testImplementation 'com.squareup.okhttp3:okhttp:5.0.0-alpha.10'
+        testImplementation 'com.squareup.okhttp3:mockwebserver:5.0.0-alpha.10'
+
+        testImplementation "org.mockito:mockito-inline:5.+"
+
+
+        compileOnly "org.projectlombok:lombok"
+
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+        testImplementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+
+        implementation 'io.micrometer:micrometer-tracing'
+        implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+
+        implementation 'org.apache.poi:poi-ooxml:5.2.5'
+
+        testImplementation 'org.testcontainers:testcontainers:1.19.3'
+        testImplementation 'org.testcontainers:mongodb:1.19.3'
+
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'io.projectreactor:reactor-test'
+        testImplementation 'org.springframework.kafka:spring-kafka-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+}

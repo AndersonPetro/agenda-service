@@ -1,0 +1,6 @@
+rootProject.name = 'agenda-service'
+
+include 'contract'
+include 'common'
+include 'domain'
+include 'infrastructure'

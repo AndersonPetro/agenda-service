@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: agenda-service
+  profiles:
+    active: prd
+    config.import: configserver:http://
+    webflux.base-path: /agenda
+    data.mongodb.auto-index-creation: true
+zoneid: America/Sao_Paulo

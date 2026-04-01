@@ -3,6 +3,7 @@ package com.agenda.contract.v1;
 import com.agenda.contract.v1.request.SaveUserRequest;
 import com.agenda.contract.v1.response.SignupResponse;
 import com.agenda.domain.input.SaveUserInput;
+import com.agenda.domain.user.api.UserApiPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
@@ -19,6 +20,9 @@ import java.util.List;
 @RequestMapping("/agenda")
 @AllArgsConstructor
 public class AgendaController {
+
+    private final UserApiPort userApiPort;
+
 
     @PutMapping
     @Operation(

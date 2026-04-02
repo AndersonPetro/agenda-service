@@ -2,7 +2,6 @@ package com.agenda.contract.v1;
 
 import com.agenda.contract.v1.request.SaveUserRequest;
 import com.agenda.contract.v1.response.SignupResponse;
-import com.agenda.domain.input.SaveUserInput;
 import com.agenda.domain.user.api.UserApiPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,13 +28,15 @@ public class AgendaController {
             summary = "Criar/atualizar usuário"
     )
     @ApiResponse
-  //  @PreAuthorize("hasRole('admin')")
-    public Flux<SignupResponse> save(@RequestBody @Valid List<SaveUserRequest> saveUserRequest){
-        return Flux.fromIterable(saveUserRequest.stream().map(SaveUserRequest::toInput).toList())
+//      @PreAuthorize("hasRole('admin')")
+    public Flux<SignupResponse> save(@RequestBody @Valid List<SaveUserRequest> saveUserRequest) {
+        return Flux.fromIterable(saveUserRequest.stream()
+                        .map(SaveUserRequest::toInput)
+                        .toList())
                 .flatMap(userApiPort::save)
                 .map(input -> SignupResponse.builder()
                         .email(input.getEmail())
-                        .name(input.getFullName())
+                        .name(input.getName())
                         .build()
                 );
     }

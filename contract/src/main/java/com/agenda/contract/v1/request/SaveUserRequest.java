@@ -3,6 +3,7 @@ package com.agenda.contract.v1.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import com.agenda.domain.input.SaveUserInput;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,7 +34,6 @@ public class SaveUserRequest {
                 .firstName(firstName)
                 .lastName(lastName)
                 .email(email)
-                .covenants(covenants)
                 .build();
     }
 

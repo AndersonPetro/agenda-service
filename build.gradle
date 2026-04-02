@@ -19,10 +19,6 @@ jar {
     enabled = false
 }
 
-repositories {
-    mavenCentral()
-}
-
 ext {
     set('springCloudVersion', "2024.0.0")
 }
@@ -39,6 +35,10 @@ allprojects {
     apply plugin: 'io.spring.dependency-management'
     apply plugin: 'java'
 
+    repositories {
+        mavenCentral()
+        maven { url 'https://packages.confluent.io/maven/' }
+    }
 
     java {
         toolchain {

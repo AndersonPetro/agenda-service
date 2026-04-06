@@ -1,4 +1,4 @@
-package com.agenda.domain.user.api;
+package com.agenda.domain.user.port.api;
 
 import com.agenda.domain.user.dtos.UserDto;
 import com.agenda.domain.input.SaveUserInput;

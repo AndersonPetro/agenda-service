@@ -1,4 +1,4 @@
-package com.agenda.domain.user.spi;
+package com.agenda.domain.user.port.spi;
 
 import reactor.core.publisher.Mono;
 

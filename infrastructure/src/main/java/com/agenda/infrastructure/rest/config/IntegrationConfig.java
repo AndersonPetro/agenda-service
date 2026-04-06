@@ -37,9 +37,9 @@ public class IntegrationConfig {
     }
 
     @Bean
-    public WebClient dimedWebClient(IntegrationProperties integrationProperties) {
+    public WebClient agendaWebClient(IntegrationProperties integrationProperties) {
         return WebClient.builder()
-                .baseUrl(integrationProperties.getDimedBaseUrl())
+                .baseUrl(integrationProperties.getAgendaBaseUrl())
                 .defaultHeaders(headers -> getHeaders(
                                 integrationProperties.getTokenName(),
                                 integrationProperties.getTokenValue(),
@@ -87,7 +87,7 @@ public class IntegrationConfig {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
             log.info("Response: {}", clientResponse.headers().asHttpHeaders().get("property-header"));
             log.info("Response: {}", clientResponse.headers());
-            log.info("Response: rawStatusCode {}", clientResponse.rawStatusCode());
+            log.info("Response: rawStatusCode {}", clientResponse.statusCode());
             return Mono.just(clientResponse);
         });
     }

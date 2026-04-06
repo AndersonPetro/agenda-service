@@ -17,4 +17,5 @@ public class UserDto {
     private String email;
     private String name;
     private Boolean isActive;
+    private String covenant;
 }

@@ -2,11 +2,12 @@ package com.agenda.contract.v1;
 
 import com.agenda.contract.v1.request.SaveUserRequest;
 import com.agenda.contract.v1.response.SignupResponse;
-import com.agenda.domain.user.api.UserApiPort;
+import com.agenda.domain.user.port.api.UserApiPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,7 +29,7 @@ public class AgendaController {
             summary = "Criar/atualizar usuário"
     )
     @ApiResponse
-//      @PreAuthorize("hasRole('admin')")
+    @PreAuthorize("hasRole('admin')")
     public Flux<SignupResponse> save(@RequestBody @Valid List<SaveUserRequest> saveUserRequest) {
         return Flux.fromIterable(saveUserRequest.stream()
                         .map(SaveUserRequest::toInput)

@@ -12,12 +12,12 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class IntegrationProperties {
 
-    @Value("${restclient.dimed.baseurl}")
-    private String dimedBaseUrl;
+    @Value("${restclient.agenda.baseurl}")
+    private String agendaBaseUrl;
 
-    @Value("${restclient.dimed.token.header}")
+    @Value("${restclient.agenda.token.header}")
     private String tokenName;
 
-    @Value("${restclient.dimed.token.value}")
+    @Value("${restclient.agenda.token.value}")
     private String tokenValue;
 }

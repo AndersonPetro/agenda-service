@@ -9,10 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Getter
+
 public class AgendaHttpException extends RuntimeException {
 
+    @Getter
     private final HttpStatus httpStatus;
+    @Getter
     private final AgendaHttpExceptionModel agendaHttpExceptionModel;
 
     public AgendaHttpException(@NonNull HttpStatus httpStatus, String message) {

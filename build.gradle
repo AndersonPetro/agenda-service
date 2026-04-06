@@ -66,6 +66,8 @@ allprojects {
         implementation 'org.springframework.kafka:spring-kafka'
         implementation 'net.javacrumbs.shedlock:shedlock-spring:4.44.0'
         implementation 'net.javacrumbs.shedlock:shedlock-provider-mongo-reactivestreams:4.44.0'
+        implementation 'org.springframework.security:spring-security-oauth2-resource-server'
+        implementation 'org.springframework.security:spring-security-oauth2-jose'
 
 
 

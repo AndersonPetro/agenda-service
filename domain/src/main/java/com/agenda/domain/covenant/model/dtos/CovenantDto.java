@@ -1,4 +1,4 @@
-package com.agenda.domain.covenant.model;
+package com.agenda.domain.covenant.model.dtos;
 
 import lombok.*;
 

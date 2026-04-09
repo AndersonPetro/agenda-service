@@ -2,17 +2,16 @@ package com.agenda.contract.v1;
 
 import com.agenda.contract.v1.request.SaveUserRequest;
 import com.agenda.contract.v1.response.SignupResponse;
+import com.agenda.contract.v1.response.UserResponse;
 import com.agenda.domain.user.port.api.UserApiPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -29,7 +28,6 @@ public class AgendaController {
             summary = "Criar/atualizar usuário"
     )
     @ApiResponse
-    @PreAuthorize("hasRole('admin')")
     public Flux<SignupResponse> save(@RequestBody @Valid List<SaveUserRequest> saveUserRequest) {
         return Flux.fromIterable(saveUserRequest.stream()
                         .map(SaveUserRequest::toInput)
@@ -40,6 +38,15 @@ public class AgendaController {
                         .name(input.getName())
                         .build()
                 );
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Altera status do usuário")
+    public Mono<UserResponse> findUserById(
+            @PathVariable("id") String id
+    ) {
+        return userApiPort.findById(id)
+                .map(UserResponse::fromDomain);
     }
 
 }

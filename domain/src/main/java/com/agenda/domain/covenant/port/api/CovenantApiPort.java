@@ -1,8 +1,16 @@
 package com.agenda.domain.covenant.port.api;
 
-import com.agenda.domain.covenant.model.CovenantDto;
+import com.agenda.domain.covenant.model.dtos.CovenantDto;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 public interface CovenantApiPort {
-    Flux<CovenantDto> findByCodeIn(String id);
+    Mono<CovenantDto> findById(String id);
+    Flux<CovenantDto> findByCodeIn(List<Long> covenantId);
+    Mono<CovenantDto> findByCode(Long covenantId);
+//    Mono<CovenantDto> save(CovenantInput covenant);
+//    Mono<CovenantDto> update(String id, CovenantInput covenant);
+
 }

@@ -7,6 +7,7 @@ import reactor.core.publisher.Mono;
 public interface UserApiPort {
 
     Mono<UserDto> save(SaveUserInput saveUserInput);
+    Mono<UserDto> findById(String id);
 
 
 }

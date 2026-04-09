@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.index.Indexed;
 
+import java.util.List;
+
 
 @Data
 @Builder
@@ -17,5 +19,5 @@ public class UserDto {
     private String email;
     private String name;
     private Boolean isActive;
-    private String covenant;
+    private List<Covenant> covenants;
 }

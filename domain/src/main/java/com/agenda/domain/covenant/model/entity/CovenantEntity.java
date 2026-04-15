@@ -84,4 +84,22 @@ public class CovenantEntity {
                 )
                 .build();
     }
+
+    public static CovenantEntity fromDomain(CovenantEntity existing, CovenantInput covenantInput) {
+        existing.setName(Optional.ofNullable(covenantInput.name()).map(String::toUpperCase).orElse(existing.getName()));
+        existing.setHasAssociated(Optional.ofNullable(covenantInput.hasAssociated()).orElse(existing.getHasAssociated()));
+        existing.setHasMultiplePayments(Optional.ofNullable(covenantInput.hasMultiplePayments()).orElse(existing.getHasMultiplePayments()));
+        existing.setIsActivePortal(Optional.ofNullable(covenantInput.isEnablePortal()).orElse(existing.getIsActivePortal()));
+        existing.setCovenantType(
+                Optional.ofNullable(covenantInput.covenantType())
+                        .map(Enum::name)
+                        .map(CovenantTypeEnum::valueOf)
+                        .orElse(existing.getCovenantType())
+        );
+        existing.setUpdateAt(LocalDateTime.now());
+        if (covenantInput.spendingLimit() != null) {
+            existing.setBalance(EntityBalance.builder().spendingLimit(covenantInput.spendingLimit()).build());
+        }
+        return existing;
+    }
 }

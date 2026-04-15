@@ -19,8 +19,7 @@ public class IntegrationConfig {
     @Bean
     public WebClient keycloakWebClient(Environment environment, KeycloakExceptionConverter keycloakExceptionConverter) {
         return WebClient.builder()
-                .baseUrl(environment.getRequiredProperty("restclient.keycloak.baseurl")
-                        .concat("/auth"))
+                .baseUrl(environment.getRequiredProperty("restclient.keycloak.baseurl"))
                 .defaultHeaders(headers -> headers
                         .add("Authorization", environment.getRequiredProperty("restclient.keycloak.authorization-basic")))
                 .filter(new WebClientExceptionFilter(keycloakExceptionConverter))
@@ -28,65 +27,29 @@ public class IntegrationConfig {
     }
 
     @Bean
-    public WebClient recaptchaWebClient(Environment environment) {
-        return WebClient.builder()
-                .baseUrl(environment.getRequiredProperty("restclient.recaptcha.baseurl"))
-                .defaultHeaders(httpHeaders -> httpHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))
-                .filter(new WebClientExceptionFilter())
-                .build();
-    }
-
-    @Bean
     public WebClient agendaWebClient(IntegrationProperties integrationProperties) {
         return WebClient.builder()
                 .baseUrl(integrationProperties.getAgendaBaseUrl())
-                .defaultHeaders(headers -> getHeaders(
-                                integrationProperties.getTokenName(),
-                                integrationProperties.getTokenValue(),
-                                headers
-                        )
-                )
+                .defaultHeaders(headers -> {
+                    headers.add(integrationProperties.getTokenName(), integrationProperties.getTokenValue());
+                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+                    headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+                })
                 .filter(logRequest())
                 .filter(logResponse())
                 .filter(new WebClientExceptionFilter())
                 .build();
-    }
-
-    @Bean
-    public WebClient localWebClient(IntegrationProperties integrationProperties) {
-        return WebClient.builder()
-                .baseUrl("http://localhost:9000")
-                .defaultHeaders(headers -> getHeaders(
-                                integrationProperties.getTokenName(),
-                                integrationProperties.getTokenValue(),
-                                headers
-                        )
-                )
-                .filter(logRequest())
-                .filter(logResponse())
-                .filter(new WebClientExceptionFilter())
-                .build();
-    }
-
-    private void getHeaders(String tokenName, String tokenValue, HttpHeaders httpHeaders) {
-        httpHeaders.add(tokenName, tokenValue);
-        httpHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        httpHeaders.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
     }
 
     private ExchangeFilterFunction logRequest() {
         return (clientRequest, next) -> {
             log.info("Request: {} {}", clientRequest.method(), clientRequest.url());
-            clientRequest.headers()
-                    .forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
             return next.exchange(clientRequest);
         };
     }
 
     private ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-            log.info("Response: {}", clientResponse.headers().asHttpHeaders().get("property-header"));
-            log.info("Response: {}", clientResponse.headers());
             log.info("Response: rawStatusCode {}", clientResponse.statusCode());
             return Mono.just(clientResponse);
         });

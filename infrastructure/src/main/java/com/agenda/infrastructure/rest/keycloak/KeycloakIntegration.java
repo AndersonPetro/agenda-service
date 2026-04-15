@@ -5,6 +5,7 @@ import com.agenda.infrastructure.rest.keycloak.authenticate.response.KeycloakAut
 import com.agenda.infrastructure.rest.keycloak.authenticate.response.KeycloakUserResponse;
 import com.common.exception.AgendaHttpException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,7 @@ public class KeycloakIntegration {
     private static final String REALM = "restclient.keycloak.realm";
     private final Environment environment;
 
-    public KeycloakIntegration(WebClient keycloakWebClient, Environment environment) {
+    public KeycloakIntegration(@Qualifier("keycloakWebClient") WebClient keycloakWebClient, Environment environment) {
         this.keycloakWebClient = keycloakWebClient;
         this.environment = environment;
     }

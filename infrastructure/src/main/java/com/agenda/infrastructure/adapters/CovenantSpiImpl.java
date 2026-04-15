@@ -5,8 +5,9 @@ import com.agenda.domain.covenant.model.dtos.CovenantDto;
 import com.agenda.domain.covenant.model.entity.CovenantEntity;
 import com.agenda.domain.covenant.port.spi.CovenantSpiPort;
 import com.agenda.infrastructure.repositories.associate.persistent.AssociateRepository;
-import com.agenda.infrastructure.repositories.covenant.CovenantRepositoryHandler;
+import com.agenda.infrastructure.repositories.covenant.persistent.CovenantRepositoryHandler;
 import com.agenda.infrastructure.repositories.covenant.mapper.CovenantMapper;
+import com.agenda.infrastructure.rest.covenant.CovenantIntegration;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,7 +30,7 @@ public class CovenantSpiImpl implements CovenantSpiPort {
     @Override
     public Mono<CovenantDto> findById(String id){
         return repository.findById(id)
-                .flaMap(getAssocciatesCount())
+                .flatMap(getAssociatesCount())
                 .map(CovenantMapper::mapToCovenantResponse);
     }
     @Override
@@ -49,6 +50,14 @@ public class CovenantSpiImpl implements CovenantSpiPort {
     @Override
     public Mono<CovenantDto> save(CovenantInput covenant) {
         return repository.save(CovenantEntity.fromDomain(covenant))
+                .map(CovenantEntity::toDomain);
+    }
+
+    @Override
+    public Mono<CovenantDto> update(String id, CovenantInput covenant) {
+        return repository.findById(id)
+                .map(entity -> CovenantEntity.fromDomain(entity, covenant))
+                .flatMap(repository::save)
                 .map(CovenantEntity::toDomain);
     }
 

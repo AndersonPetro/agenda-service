@@ -2,14 +2,18 @@ package com.agenda.infrastructure.adapters;
 
 import com.agenda.domain.user.dtos.UserDto;
 import com.agenda.domain.user.port.spi.UserSpiPort;
-import com.agenda.infrastructure.repositories.covenant.persistent.CovenantRepository;
 import com.agenda.infrastructure.repositories.user.mapper.UserMapper;
 import com.agenda.infrastructure.repositories.user.persistent.UserEntity;
 import com.agenda.infrastructure.repositories.user.persistent.UserRepository;
 import com.agenda.infrastructure.repositories.user.persistent.UserRepositoryHandler;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @Component
 @AllArgsConstructor
@@ -29,4 +33,22 @@ public class UserSpiImpl implements UserSpiPort {
                 .mapNotNull(UserEntity::toDomain);
     }
 
+    @Override
+    public Mono<UserDto> setUserActive(String userId, Boolean isActive) {
+        return userRepository.findById(userId)
+                .flatMap(entity -> {
+                    entity.setIsActive(isActive);
+                    return userRepository.save(entity);
+                })
+                .mapNotNull(UserEntity::toDomain);
+    }
+
+    @Override
+    public Mono<Page<UserDto>> findByFilters(PageRequest pageRequest, Map<String, String> filters) {
+        return repository.findAllWithFilters(pageRequest, filters)
+                .map(UserEntity::toDomain)
+                .collectList()
+                .zipWith(repository.countAllWithFilters(filters))
+                .map(tuple -> new PageImpl<>(tuple.getT1(), pageRequest, tuple.getT2()));
+    }
 }

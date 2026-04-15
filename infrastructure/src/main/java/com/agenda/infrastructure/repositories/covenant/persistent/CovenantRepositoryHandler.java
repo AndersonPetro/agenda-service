@@ -1,8 +1,7 @@
-package com.agenda.infrastructure.repositories.covenant;
+package com.agenda.infrastructure.repositories.covenant.persistent;
 
 
 import com.agenda.domain.covenant.model.entity.CovenantEntity;
-import com.agenda.infrastructure.repositories.covenant.persistent.CovenantRepository;
 import com.common.exception.AgendaHttpException;
 import com.common.gmt.query.QueryFilters;
 import lombok.AllArgsConstructor;

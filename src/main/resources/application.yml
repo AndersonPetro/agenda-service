@@ -17,9 +17,9 @@ server:
 restclient:
   keycloak:
     baseurl: http://localhost:8080
-    realm: agenda-realm
+    realm: agenda-service-realm
     authorization-basic: Basic Y2xpZW50LWlkOmNsaWVudC1zZWNyZXQ=
-  agenda:
+  agenda-service:
     baseurl: http://localhost:9000
     token:
       header: X-API-KEY
@@ -28,7 +28,5 @@ restclient:
 zoneid: America/Sao_Paulo
 
 springdoc:
-  api-docs:
-    path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html

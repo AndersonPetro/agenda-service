@@ -5,106 +5,134 @@ import com.agendaService.infrastructure.rest.keycloak.authenticate.response.Keyc
 import com.agendaService.infrastructure.rest.keycloak.authenticate.response.KeycloakUserResponse;
 import com.common.exception.AgendaHttpException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-@Service
 @Slf4j
+@Component
 public class KeycloakIntegration {
 
-    private final WebClient keycloakWebClient;
-    private static final String REALM = "restclient.keycloak.realm";
+    private final RestClient keycloakRestClient;
     private final Environment environment;
 
-    public KeycloakIntegration(@Qualifier("keycloakWebClient") WebClient keycloakWebClient, Environment environment) {
-        this.keycloakWebClient = keycloakWebClient;
+    private static final String REALM = "restclient.keycloak.realm";
+
+    public KeycloakIntegration(RestClient keycloakRestClient, Environment environment) {
+        this.keycloakRestClient = keycloakRestClient;
         this.environment = environment;
     }
 
-    public Mono<KeycloakAuthenticationResponse> authenticateClientCredentials() {
-        return keycloakWebClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/realms/{realm}/protocol/openid-connect/token")
-                        .build(environment.getRequiredProperty(REALM)))
+    public KeycloakAuthenticationResponse authenticateClientCredentials() {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "client_credentials");
+        formData.add("client_id", "app_agenda");
+        formData.add("client_secret", "rDDID39IuFVMbdHhjvmr8B0lwqlN5WVf");
+
+        return keycloakRestClient.post()
+                .uri("/realms/{realm}/protocol/openid-connect/token", environment.getRequiredProperty(REALM))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
+                .body(formData)
                 .retrieve()
-                .bodyToMono(KeycloakAuthenticationResponse.class);
+                .body(KeycloakAuthenticationResponse.class);
     }
 
-    public Mono<KeycloakUserResponse> findUserWithCriteria(String username, String email) {
-        return authenticateClientCredentials()
-                .flatMap(authentication -> keycloakWebClient.get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/admin/realms/{realm}/users")
-                                .queryParamIfPresent("username", Optional.ofNullable(username))
-                                .queryParamIfPresent("email", Optional.ofNullable(email))
-                                .build(environment.getRequiredProperty(REALM))
-                        )
-                        .header("Authorization", "Bearer " + authentication.getAccessToken())
-                        .retrieve()
-                        .bodyToFlux(KeycloakUserResponse.class)
-                        .filter(user -> user.getUsername().equals(username) || user.getEmail().equals(email))
-                        .collectList()
-                        .flatMap(users -> {
-                            if (users.size() == 1) {
-                                return Mono.just(users.get(0));
-                            } else if (users.isEmpty()) {
-                                log.info("Nenhum usuário encontrado para os filtros username={}, email={}", username, email);
-                                return Mono.empty();
-                            } else {
-                                log.warn("Mais de um usuário retornado para os filtros username={}, email={}. Cancelando operação.", username, email);
-                                throw AgendaHttpException.withHttp412()
-                                        .withMessage("Não é possível identificar o usuário")
-                                        .build();
-                            }
-                        }));
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> authenticateUser(String email, String password) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "password");
+        formData.add("client_id", "app_agenda");
+        formData.add("client_secret", "rDDID39IuFVMbdHhjvmr8B0lwqlN5WVf");
+        formData.add("username", email);
+        formData.add("password", password);
+
+        return keycloakRestClient.post()
+                .uri("/realms/{realm}/protocol/openid-connect/token", environment.getRequiredProperty(REALM))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(formData)
+                .retrieve()
+                .body(Map.class);
     }
 
-    public Mono<String> createUser(KeycloakUserRequest keycloakUserRequest) {
-        return authenticateClientCredentials()
-                .flatMap(authentication -> keycloakWebClient.post()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/admin/realms/{realm}/users")
-                                .build(environment.getRequiredProperty(REALM)))
-                        .header("Authorization", "Bearer " + authentication.getAccessToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(keycloakUserRequest)
-                        .retrieve()
-                        .toBodilessEntity()
-                )
-                .map(this::extractUserIdFromLocationHeader);
+    public KeycloakUserResponse findUserWithCriteria(String username, String email) {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
+
+        KeycloakUserResponse[] response = keycloakRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/admin/realms/{realm}/users")
+                        .queryParamIfPresent("username", Optional.ofNullable(username))
+                        .queryParamIfPresent("email", Optional.ofNullable(email))
+                        .build(environment.getRequiredProperty(REALM)))
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .retrieve()
+                .body(KeycloakUserResponse[].class);
+
+        List<KeycloakUserResponse> users = Arrays.stream(
+                        Optional.ofNullable(response).orElse(new KeycloakUserResponse[0]))
+                .filter(user -> (username != null && username.equals(user.getUsername()))
+                        || (email != null && email.equals(user.getEmail())))
+                .toList();
+
+        if (users.size() == 1) {
+            return users.get(0);
+        }
+        if (users.isEmpty()) {
+            log.info("Nenhum usuário encontrado para os filtros username={}, email={}", username, email);
+            return null;
+        }
+        log.warn("Mais de um usuário retornado para os filtros username={}, email={}. Cancelando operação.", username, email);
+        throw AgendaHttpException.withHttp412()
+                .withMessage("Não é possível identificar o usuário")
+                .build();
     }
 
-    public Mono<Void> active(String id, Boolean isActive) {
-        return authenticateClientCredentials()
-                .flatMap(authentication -> keycloakWebClient.put()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/admin/realms/{realm}/users/{id}")
-                                .build(
-                                        environment.getRequiredProperty(REALM),
-                                        id
-                                )
+    public String createUser(KeycloakUserRequest keycloakUserRequest) {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
 
-                        )
-                        .header("Authorization", "Bearer " + authentication.getAccessToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue("{\"enabled\": " + isActive + "  }")
-                        .retrieve()
-                        .toBodilessEntity()
-                ).then();
+        ResponseEntity<Void> responseEntity = keycloakRestClient.post()
+                .uri("/admin/realms/{realm}/users", environment.getRequiredProperty(REALM))
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(keycloakUserRequest)
+                .retrieve()
+                .toBodilessEntity();
 
+        return extractUserIdFromLocationHeader(responseEntity);
     }
 
+    public void active(String id, Boolean isActive) {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
+
+        keycloakRestClient.put()
+                .uri("/admin/realms/{realm}/users/{id}", environment.getRequiredProperty(REALM), id)
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("enabled", isActive))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    public void updateUser(String userId, KeycloakUserRequest keycloakUserRequest) {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
+
+        keycloakRestClient.put()
+                .uri("/admin/realms/{realm}/users/{userId}", environment.getRequiredProperty(REALM), userId)
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(keycloakUserRequest)
+                .retrieve()
+                .toBodilessEntity();
+    }
 
     private String extractUserIdFromLocationHeader(ResponseEntity<Void> responseEntity) {
         return Optional.ofNullable(responseEntity.getHeaders().getLocation())
@@ -113,20 +141,5 @@ public class KeycloakIntegration {
                 .filter(locationSplitted -> locationSplitted.length == 2)
                 .map(locationSplitted -> locationSplitted[1])
                 .orElse(null);
-    }
-
-    public Mono<Void> updateUser(String userId, KeycloakUserRequest keycloakUserRequest) {
-        return authenticateClientCredentials()
-                .flatMap(authentication -> keycloakWebClient.put()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/admin/realms/{realm}/users/{userId}")
-                                .build(environment.getRequiredProperty(REALM), userId))
-                        .header("Authorization", "Bearer " + authentication.getAccessToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(keycloakUserRequest)
-                        .retrieve()
-                        .toBodilessEntity()
-                )
-                .then();
     }
 }

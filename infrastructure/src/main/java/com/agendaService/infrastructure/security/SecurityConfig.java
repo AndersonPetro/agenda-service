@@ -1,16 +1,11 @@
 package com.agendaService.infrastructure.security;
 
-import com.common.exception.AgendaHttpExceptionModel;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import com.common.exception.ExceptionUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -23,105 +18,79 @@ import org.springframework.security.oauth2.server.resource.authentication.Reacti
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.authorization.ServerAccessDeniedHandler;
+import org.springframework.web.server.WebExceptionHandler;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 public class SecurityConfig {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Qualifier("errorWebExceptionHandler")
+    @Autowired
+    private WebExceptionHandler webExceptionHandler;
 
     @Bean
-    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-        return http
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(
-                                "/agenda-service/auth/**",
-                                "/actuator/**",
-                                "/webjars/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
-                        .anyExchange().authenticated()
+                .authorizeExchange(authz -> authz
+                        .anyExchange().permitAll()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler())
-                )
-                .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint(authenticationEntryPoint())
-                        .accessDeniedHandler(accessDeniedHandler())
-                )
-                .build();
-    }
+                );
 
-    private Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Collection<GrantedAuthority> authorities = new ArrayList<>();
-
-            // Extract realm_access roles from Keycloak JWT
-            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-            if (realmAccess != null) {
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) realmAccess.get("roles");
-                if (roles != null) {
-                    authorities.addAll(roles.stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
-                            .collect(Collectors.toList()));
-                }
-            }
-
-            return authorities;
-        });
-        return new ReactiveJwtAuthenticationConverterAdapter(converter);
+        return http.build();
     }
 
     private ServerAuthenticationEntryPoint authenticationEntryPoint() {
         return (exchange, ex) -> {
-            log.warn("Acesso não autenticado: {}", ex.getMessage());
-            var model = AgendaHttpExceptionModel.builder()
-                    .code("UNAUTHORIZED")
-                    .message("Credenciais inválidas ou ausentes")
-                    .build();
-            return writeErrorResponse(exchange.getResponse(), HttpStatus.UNAUTHORIZED, model);
+            Exception exception = ExceptionUtils.badRequest("Acesso negado");
+            return webExceptionHandler.handle(exchange, exception);
         };
     }
 
     private ServerAccessDeniedHandler accessDeniedHandler() {
         return (exchange, denied) -> {
-            log.warn("Acesso negado: {}", denied.getMessage());
-            var model = AgendaHttpExceptionModel.builder()
-                    .code("FORBIDDEN")
-                    .message("Você não tem permissão para acessar este recurso")
-                    .build();
-            return writeErrorResponse(exchange.getResponse(), HttpStatus.FORBIDDEN, model);
+            Exception exception = ExceptionUtils.notFoundException("Acesso negado");
+            return webExceptionHandler.handle(exchange, exception);
         };
     }
 
-    private Mono<Void> writeErrorResponse(org.springframework.http.server.reactive.ServerHttpResponse response,
-                                           HttpStatus status,
-                                           AgendaHttpExceptionModel model) {
-        response.setStatusCode(status);
-        response.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        try {
-            byte[] bytes = objectMapper.writeValueAsBytes(model);
-            DataBuffer buffer = response.bufferFactory().wrap(bytes);
-            return response.writeWith(Mono.just(buffer));
-        } catch (JsonProcessingException e) {
-            byte[] fallback = "{\"message\":\"Erro interno\"}".getBytes(StandardCharsets.UTF_8);
-            DataBuffer buffer = response.bufferFactory().wrap(fallback);
-            return response.writeWith(Mono.just(buffer));
+    private Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(new KeycloakRoleConverter());
+        return new ReactiveJwtAuthenticationConverterAdapter(converter);
+    }
+
+    static class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Collection<GrantedAuthority> convert(Jwt jwt) {
+            Map<String, Object> realmAccess = (Map<String, Object>) jwt.getClaims().get("realm_access");
+
+            if (realmAccess == null || realmAccess.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            Collection<String> roles = (Collection<String>) realmAccess.get("roles");
+
+            if (roles == null || roles.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            return roles.stream()
+                    .map(String::toUpperCase)
+                    .map(roleName -> "ROLE_" + roleName)
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
         }
     }
 }
-

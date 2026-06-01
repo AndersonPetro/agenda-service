@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -17,22 +18,24 @@ import java.util.List;
 @AllArgsConstructor
 public class OauthServerSpiImpl implements OauthServerSpiPort {
     private KeycloakIntegration keycloakIntegration;
+
     @Override
     public Mono<String> findUserWithCriteria(String username, String email) {
-        return keycloakIntegration.findUserWithCriteria(username,email)
+        return Mono.fromCallable(() -> keycloakIntegration.findUserWithCriteria(username, email))
+                .subscribeOn(Schedulers.boundedElastic())
                 .map(KeycloakUserResponse::getId);
     }
 
     @Override
     public Mono<Void> updateUser(String userId, SaveUserInput saveUserInput) {
-        return keycloakIntegration.updateUser(
+        return Mono.fromRunnable(() -> keycloakIntegration.updateUser(
                 userId,
                 KeycloakUserRequest.builder()
                         .credentials(buildCredentials(saveUserInput))
                         .username(saveUserInput.getEmail())
                         .email(saveUserInput.getEmail())
                         .build()
-        );
+        )).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     private static List<CredentialRequest> buildCredentials(SaveUserInput saveUserInput) {

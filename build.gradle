@@ -59,7 +59,9 @@ allprojects {
         implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.5'
         implementation 'org.springframework.security:spring-security-oauth2-resource-server'
         implementation 'org.springframework.security:spring-security-oauth2-jose'
-        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.security:spring-security-config'
+        implementation 'org.springframework.security:spring-security-web'
+
 
         compileOnly 'org.projectlombok:lombok'
 
@@ -84,6 +86,10 @@ allprojects {
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'io.projectreactor:reactor-test'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs.add('-parameters')
     }
 
     tasks.named('test') {

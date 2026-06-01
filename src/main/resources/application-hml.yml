@@ -1,0 +1,10 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://andersonpetro:ap1234@agenda-service.37uxstq.mongodb.net/agenda-service?retryWrites=true&w=majority
+      auto-index-creation: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8080/realms/agenda-service/protocol/openid-connect/certs

@@ -6,6 +6,8 @@ import com.agendaService.infrastructure.repositories.user.persistent.UserEntity;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.Collections;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserMapper {
 
@@ -15,7 +17,7 @@ public class UserMapper {
                 .id(user.getId())
                 .email(user.getEmail())
                 .name(user.getName())
-                .covenants(user.getCovenants().stream()
+                .covenants(user.getCovenants() != null ? user.getCovenants().stream()
                         .map(covenant ->
                                 Covenant.builder()
                                         .id(covenant.id())
@@ -23,7 +25,7 @@ public class UserMapper {
                                         .name(covenant.name())
                                         .build()
                         )
-                        .toList()
+                        .toList() : Collections.emptyList()
                 )
                 .build();
     }

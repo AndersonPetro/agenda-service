@@ -1,15 +1,24 @@
 spring:
   application:
     name: agenda-service
+  profiles:
+    active: hml
+  webflux:
+    base-path: /agenda-service
   data:
     mongodb:
-      uri: mongodb://localhost:27017/agenda-db
-      auto-index-creation: true
+      uri: mongodb+srv://andersonpetro:ap1234@agenda-service.37uxstq.mongodb.net/agenda-service?retryWrites=true&w=majority
+      auto-index-creation: false
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://localhost:8080/realms/agenda-realm/protocol/openid-connect/certs
+            issuer-uri: http://localhost:8080/realms/agenda-service
+            jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
 
 server:
   port: 9000
@@ -17,12 +26,12 @@ server:
 restclient:
   keycloak:
     baseurl: http://localhost:8080
-    realm: agenda-service-realm
-    authorization-basic: Basic Y2xpZW50LWlkOmNsaWVudC1zZWNyZXQ=
+    realm: agenda-service
+    authorization-basic: Basic YXBwX2FnZW5kYTpyRERJRDM5SXVGVk1iZEhoanZtcjhCMGx3cWxONVdWZg==
   agenda-service:
     baseurl: http://localhost:9000
     token:
-      header: X-API-KEY
+      header: app-token
       value: default-token
 
 zoneid: America/Sao_Paulo
@@ -30,3 +39,4 @@ zoneid: America/Sao_Paulo
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+

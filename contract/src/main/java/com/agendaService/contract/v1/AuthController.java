@@ -27,6 +27,9 @@ public class AuthController {
         return authApiPort.login(request.getEmail(), request.getPassword());
     }
 
+    /**
+     * Cadastro de novos usuários salva Keycloak. Salva retorna o ID do usuário criado e uma mensagem de sucesso.
+     */
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastrar novo usuário")

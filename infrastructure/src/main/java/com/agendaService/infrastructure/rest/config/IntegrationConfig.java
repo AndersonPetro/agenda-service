@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -15,6 +16,13 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Configuration
 public class IntegrationConfig {
+
+    @Bean
+    public RestClient keycloakRestClient(Environment environment) {
+        return RestClient.builder()
+                .baseUrl(environment.getRequiredProperty("restclient.keycloak.baseurl"))
+                .build();
+    }
 
     @Bean
     public WebClient keycloakWebClient(Environment environment, KeycloakExceptionConverter keycloakExceptionConverter) {

@@ -2,7 +2,6 @@ package com.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
@@ -44,6 +43,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Mono<ResponseEntity<AgendaHttpExceptionModel>> handleGenericException(Exception ex) {
+
+        if (isAccessDeniedException(ex)) {
+            return Mono.error(ex);
+        }
         log.error("Erro inesperado: ", ex);
         var model = AgendaHttpExceptionModel.builder()
                 .code("INTERNAL_ERROR")
@@ -53,6 +56,17 @@ public class GlobalExceptionHandler {
         return Mono.just(ResponseEntity
                 .internalServerError()
                 .body(model));
+    }
+
+    private boolean isAccessDeniedException(Throwable ex) {
+        while (ex != null) {
+            if (ex.getClass().getName().contains("AccessDeniedException")
+                    || ex.getClass().getName().contains("AuthorizationDeniedException")) {
+                return true;
+            }
+            ex = ex.getCause();
+        }
+        return false;
     }
 }
 

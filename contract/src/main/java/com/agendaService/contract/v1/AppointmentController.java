@@ -42,7 +42,7 @@ public class AppointmentController {
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Listar agendamentos de um usuário")
-    public Flux<AppointmentResponse> findByUserId(@PathVariable String userId) {
+    public Flux<AppointmentResponse> findByUserId(@PathVariable("userId") String userId) {
         return appointmentApiPort.findByUserId(userId)
                 .map(AppointmentResponse::fromDomain);
     }

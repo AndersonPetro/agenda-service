@@ -1,9 +1,11 @@
 package com.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.core.publisher.Mono;
 
@@ -39,6 +41,25 @@ public class GlobalExceptionHandler {
         return Mono.just(ResponseEntity
                 .badRequest()
                 .body(model));
+    }
+
+    @ExceptionHandler(HttpClientErrorException.class)
+    public Mono<ResponseEntity<AgendaHttpExceptionModel>> handleHttpClientErrorException(HttpClientErrorException ex) {
+        log.warn("HttpClientErrorException: status={}, body={}", ex.getStatusCode(), ex.getResponseBodyAsString());
+        
+        if (ex.getStatusCode() == HttpStatus.CONFLICT) {
+            var model = AgendaHttpExceptionModel.builder()
+                    .code("USER_ALREADY_EXISTS")
+                    .message("Este e-mail já está cadastrado no sistema")
+                    .build();
+            return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(model));
+        }
+        
+        var model = AgendaHttpExceptionModel.builder()
+                .code("EXTERNAL_SERVICE_ERROR")
+                .message("Erro na comunicação com o serviço de autenticação")
+                .build();
+        return Mono.just(ResponseEntity.status(ex.getStatusCode()).body(model));
     }
 
     @ExceptionHandler(Exception.class)

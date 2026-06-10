@@ -47,4 +47,19 @@ public class AuthSpiImpl implements AuthSpiPort {
         return Mono.fromCallable(() -> keycloakIntegration.createUser(request))
                 .subscribeOn(Schedulers.boundedElastic());
     }
+
+    @Override
+    public Mono<String> findUserIdByEmail(String email) {
+        return Mono.fromCallable(() -> {
+            var user = keycloakIntegration.findUserWithCriteria(null, email);
+            return user != null ? user.getId() : null;
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Void> resetPassword(String userId, String newPassword) {
+        return Mono.fromRunnable(() -> keycloakIntegration.resetPassword(userId, newPassword))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
+    }
 }

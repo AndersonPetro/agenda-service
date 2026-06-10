@@ -134,6 +134,24 @@ public class KeycloakIntegration {
                 .toBodilessEntity();
     }
 
+    public void resetPassword(String userId, String newPassword) {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
+
+        var credential = Map.of(
+                "type", "password",
+                "value", newPassword,
+                "temporary", false
+        );
+
+        keycloakRestClient.put()
+                .uri("/admin/realms/{realm}/users/{userId}/reset-password", environment.getRequiredProperty(REALM), userId)
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(credential)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private String extractUserIdFromLocationHeader(ResponseEntity<Void> responseEntity) {
         return Optional.ofNullable(responseEntity.getHeaders().getLocation())
                 .map(URI::getPath)

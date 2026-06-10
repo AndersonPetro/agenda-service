@@ -43,9 +43,9 @@ public class GlobalExceptionHandler {
                 .body(model));
     }
 
-    @ExceptionHandler(HttpClientErrorException.class)
-    public Mono<ResponseEntity<AgendaHttpExceptionModel>> handleHttpClientErrorException(HttpClientErrorException ex) {
-        log.warn("HttpClientErrorException: status={}, body={}", ex.getStatusCode(), ex.getResponseBodyAsString());
+    @ExceptionHandler(org.springframework.web.client.RestClientResponseException.class)
+    public Mono<ResponseEntity<AgendaHttpExceptionModel>> handleRestClientResponseException(org.springframework.web.client.RestClientResponseException ex) {
+        log.warn("RestClientResponseException: status={}, body={}", ex.getStatusCode(), ex.getResponseBodyAsString());
         
         if (ex.getStatusCode() == HttpStatus.CONFLICT) {
             var model = AgendaHttpExceptionModel.builder()

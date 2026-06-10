@@ -2,6 +2,8 @@ package com.agendaService.contract.v1;
 
 import com.agendaService.contract.v1.request.LoginRequest;
 import com.agendaService.contract.v1.request.SignupRequest;
+import com.agendaService.contract.v1.request.RecoveryRequest;
+import com.agendaService.contract.v1.request.RecoveryConfirmRequest;
 import com.agendaService.domain.auth.port.api.AuthApiPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +45,29 @@ public class AuthController {
                 "userId", userId,
                 "message", "Usuário cadastrado com sucesso"
         ));
+    }
+
+    @PostMapping("/recovery")
+    @Operation(summary = "Solicitar recuperação de senha")
+    public Mono<Map<String, String>> recovery(@RequestBody @Valid RecoveryRequest request) {
+        return authApiPort.requestPasswordRecovery(request.getEmail())
+                .then(Mono.fromCallable(() -> {
+                    String devCode = authApiPort.getRecoveryCode(request.getEmail());
+                    if (devCode != null) {
+                        return Map.of(
+                                "message", "Instruções de recuperação de senha enviadas com sucesso!",
+                                "devCode", devCode
+                        );
+                    }
+                    return Map.of("message", "Instruções de recuperação de senha enviadas com sucesso!");
+                }));
+    }
+
+    @PostMapping("/recovery/confirm")
+    @Operation(summary = "Confirmar recuperação de senha")
+    public Mono<Map<String, String>> confirmRecovery(@RequestBody @Valid RecoveryConfirmRequest request) {
+        return authApiPort.confirmPasswordRecovery(request.getEmail(), request.getCode(), request.getNewPassword())
+                .then(Mono.just(Map.of("message", "Senha alterada com sucesso!")));
     }
 }
 

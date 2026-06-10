@@ -5,17 +5,28 @@ import com.agendaService.domain.auth.port.spi.AuthSpiPort;
 import com.agendaService.domain.user.dtos.UserDto;
 import com.agendaService.domain.user.port.spi.UserSpiPort;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class AuthService implements AuthApiPort {
 
     private final AuthSpiPort authSpiPort;
     private final UserSpiPort userSpiPort;
+
+    private static final Map<String, RecoveryCodeInfo> recoveryCodes = new ConcurrentHashMap<>();
+
+    private record RecoveryCodeInfo(String code, java.time.Instant expiresAt) {
+        public boolean isExpired() {
+            return java.time.Instant.now().isAfter(expiresAt);
+        }
+    }
 
     @Override
     public Mono<Map<String, Object>> login(String email, String password) {
@@ -35,6 +46,63 @@ public class AuthService implements AuthApiPort {
                     return userSpiPort.save(user)
                             .thenReturn(keycloakUserId);
                 });
+    }
+
+    @Override
+    public Mono<Void> requestPasswordRecovery(String email) {
+        return authSpiPort.findUserIdByEmail(email)
+                .switchIfEmpty(Mono.error(com.common.exception.AgendaHttpException.withHttp404()
+                        .withMessage("Usuário não encontrado com o e-mail informado")
+                        .build()))
+                .flatMap(userId -> {
+                    if (userId == null || userId.isBlank()) {
+                        return Mono.error(com.common.exception.AgendaHttpException.withHttp404()
+                                .withMessage("Usuário não encontrado com o e-mail informado")
+                                .build());
+                    }
+
+                    // Generate a 6-digit code
+                    String code = String.format("%06d", new java.util.Random().nextInt(1000000));
+                    log.info("[PASSWORD RECOVERY] Generated code {} for email {}", code, email);
+
+                    recoveryCodes.put(email.toLowerCase(), new RecoveryCodeInfo(code, java.time.Instant.now().plusSeconds(900))); // 15 mins
+
+                    return Mono.empty();
+                })
+                .then();
+    }
+
+    @Override
+    public Mono<Void> confirmPasswordRecovery(String email, String code, String newPassword) {
+        return Mono.defer(() -> {
+            var info = recoveryCodes.get(email.toLowerCase());
+            if (info == null || info.isExpired() || !info.code().equals(code)) {
+                return Mono.error(com.common.exception.AgendaHttpException.withHttp400()
+                        .withMessage("Código de validação inválido ou expirado")
+                        .build());
+            }
+
+            return authSpiPort.findUserIdByEmail(email)
+                    .switchIfEmpty(Mono.error(com.common.exception.AgendaHttpException.withHttp404()
+                            .withMessage("Usuário não encontrado")
+                            .build()))
+                    .flatMap(userId -> {
+                        if (userId == null || userId.isBlank()) {
+                            return Mono.error(com.common.exception.AgendaHttpException.withHttp404()
+                                    .withMessage("Usuário não encontrado")
+                                    .build());
+                        }
+
+                        return authSpiPort.resetPassword(userId, newPassword)
+                                .then(Mono.fromRunnable(() -> recoveryCodes.remove(email.toLowerCase())));
+                    });
+        }).then();
+    }
+
+    @Override
+    public String getRecoveryCode(String email) {
+        var info = recoveryCodes.get(email.toLowerCase());
+        return (info != null && !info.isExpired()) ? info.code() : null;
     }
 }
 

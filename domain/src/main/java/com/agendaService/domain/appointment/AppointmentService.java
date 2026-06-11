@@ -38,42 +38,44 @@ public class AppointmentService implements AppointmentApiPort {
     public Mono<AppointmentDto> create(AppointmentInput input) {
         return userSpiPort.findById(input.userId())
                 .switchIfEmpty(Mono.error(ExceptionUtils.notFoundException("Usuário não encontrado")))
-                .then(serviceSpiPort.findById(input.serviceId()))
-                .switchIfEmpty(Mono.error(ExceptionUtils.notFoundException("Serviço não encontrado")))
-                .flatMap(service -> {
-                    LocalDateTime start = input.scheduledAt();
-                    LocalDateTime end = start.plusMinutes(service.getDurationMinutes());
+                .flatMap(user -> serviceSpiPort.findById(input.serviceId())
+                        .switchIfEmpty(Mono.error(ExceptionUtils.notFoundException("Serviço não encontrado")))
+                        .flatMap(service -> {
+                            LocalDateTime start = input.scheduledAt();
+                            LocalDateTime end = start.plusMinutes(service.getDurationMinutes());
 
-                    return appointmentSpiPort.findByScheduledAtBetween(
-                                    start.toLocalDate().atStartOfDay(),
-                                    start.toLocalDate().atTime(23, 59, 59))
-                            .filter(existing -> existing.getStatus() != AppointmentStatusEnum.CANCELLED)
-                            .collectList()
-                            .flatMap(existingAppointments -> {
-                                boolean hasConflict = existingAppointments.stream()
-                                        .anyMatch(existing -> {
-                                            LocalDateTime existingEnd = existing.getScheduledAt().plusMinutes(service.getDurationMinutes());
-                                            return start.isBefore(existingEnd) && end.isAfter(existing.getScheduledAt());
-                                        });
+                            return appointmentSpiPort.findByScheduledAtBetween(
+                                            start.toLocalDate().atStartOfDay(),
+                                            start.toLocalDate().atTime(23, 59, 59))
+                                    .filter(existing -> existing.getStatus() != AppointmentStatusEnum.CANCELLED)
+                                    .collectList()
+                                    .flatMap(existingAppointments -> {
+                                        boolean hasConflict = existingAppointments.stream()
+                                                .anyMatch(existing -> {
+                                                    LocalDateTime existingEnd = existing.getScheduledAt().plusMinutes(service.getDurationMinutes());
+                                                    return start.isBefore(existingEnd) && end.isAfter(existing.getScheduledAt());
+                                                });
 
-                                if (hasConflict) {
-                                    return Mono.error(ExceptionUtils.badRequest("Horário já está ocupado"));
-                                }
+                                        if (hasConflict) {
+                                            return Mono.error(ExceptionUtils.badRequest("Horário já está ocupado"));
+                                        }
 
-                                var appointment = AppointmentDto.builder()
-                                        .userId(input.userId())
-                                        .serviceId(input.serviceId())
-                                        .serviceName(service.getName())
-                                        .scheduledAt(input.scheduledAt())
-                                        .status(AppointmentStatusEnum.PENDING)
-                                        .notes(input.notes())
-                                        .createdAt(LocalDateTime.now())
-                                        .updatedAt(LocalDateTime.now())
-                                        .build();
+                                        var appointment = AppointmentDto.builder()
+                                                .userId(input.userId())
+                                                .serviceId(input.serviceId())
+                                                .serviceName(service.getName())
+                                                .userName(user.getName())
+                                                .scheduledAt(input.scheduledAt())
+                                                .status(AppointmentStatusEnum.PENDING)
+                                                .notes(input.notes())
+                                                .createdAt(LocalDateTime.now())
+                                                .updatedAt(LocalDateTime.now())
+                                                .build();
 
-                                return appointmentSpiPort.save(appointment);
-                            });
-                });
+                                        return appointmentSpiPort.save(appointment);
+                                    });
+                        })
+                );
     }
 
     @Override

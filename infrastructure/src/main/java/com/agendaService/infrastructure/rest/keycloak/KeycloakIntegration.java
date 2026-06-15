@@ -96,6 +96,21 @@ public class KeycloakIntegration {
                 .build();
     }
 
+    public List<KeycloakUserResponse> findAllUsers() {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
+
+        KeycloakUserResponse[] response = keycloakRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/admin/realms/{realm}/users")
+                        .queryParam("max", 1000)
+                        .build(environment.getRequiredProperty(REALM)))
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .retrieve()
+                .body(KeycloakUserResponse[].class);
+
+        return response != null ? Arrays.asList(response) : List.of();
+    }
+
     public String createUser(KeycloakUserRequest keycloakUserRequest) {
         KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
 

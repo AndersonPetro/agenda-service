@@ -17,6 +17,9 @@ public class UserMapper {
                 .id(user.getId())
                 .email(user.getEmail())
                 .name(user.getName())
+                .phone(user.getPhone())
+                .isActive(user.getIsActive() != null ? user.getIsActive() : true)
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt() : java.time.Instant.now())
                 .covenants(user.getCovenants() != null ? user.getCovenants().stream()
                         .map(covenant ->
                                 Covenant.builder()

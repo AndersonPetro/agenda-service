@@ -66,7 +66,7 @@ public class AppointmentService implements AppointmentApiPort {
                                                 .serviceName(service.getName())
                                                 .userName(user.getName())
                                                 .scheduledAt(input.scheduledAt())
-                                                .status(AppointmentStatusEnum.PENDING)
+                                                .status(AppointmentStatusEnum.CONFIRMED)
                                                 .notes(input.notes())
                                                 .createdAt(LocalDateTime.now())
                                                 .updatedAt(LocalDateTime.now())

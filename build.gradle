@@ -61,6 +61,7 @@ allprojects {
         implementation 'org.springframework.security:spring-security-oauth2-jose'
         implementation 'org.springframework.security:spring-security-config'
         implementation 'org.springframework.security:spring-security-web'
+        implementation(platform("org.mongodb:mongodb-driver-bom:5.8.0"))
 
 
         compileOnly 'org.projectlombok:lombok'

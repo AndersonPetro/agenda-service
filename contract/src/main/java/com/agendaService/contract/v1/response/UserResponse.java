@@ -5,6 +5,7 @@ import com.agendaService.domain.user.dtos.UserDto;
 import com.common.enums.RoleEnum;
 import lombok.Builder;
 
+import java.time.Instant;
 import java.util.List;
 
 @Builder
@@ -12,8 +13,10 @@ public record UserResponse(
         String id,
         String name,
         String email,
+        String phone,
         RoleEnum role,
         Boolean isActive,
+        Instant createdAt,
         List<CovenantResponse> covenants
 ) {
 
@@ -29,8 +32,10 @@ public record UserResponse(
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .phone(user.getPhone())
                 .isActive(user.getIsActive())
-                .covenants(user.getCovenants().stream().map(UserResponse::fromDomain).toList())
+                .createdAt(user.getCreatedAt())
+                .covenants(user.getCovenants() != null ? user.getCovenants().stream().map(UserResponse::fromDomain).toList() : List.of())
                 .build();
     }
 
@@ -43,3 +48,4 @@ public record UserResponse(
 
     }
 }
+

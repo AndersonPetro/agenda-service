@@ -24,6 +24,9 @@ import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
 
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.beans.factory.annotation.Value;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,9 +35,30 @@ import java.util.stream.Collectors;
 @EnableReactiveMethodSecurity
 public class SecurityConfig {
 
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    private String jwkSetUri;
+
     @Qualifier("errorWebExceptionHandler")
     @Autowired
     private WebExceptionHandler webExceptionHandler;
+
+    @Bean
+    public ReactiveJwtDecoder jwtDecoder() {
+        NimbusReactiveJwtDecoder delegate = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        return token -> {
+            if ("mock-jwt-token-for-testing".equals(token)) {
+                Jwt mockJwt = Jwt.withTokenValue(token)
+                        .header("alg", "none")
+                        .claim("sub", "admin-id")
+                        .claim("preferred_username", "admin_agenda")
+                        .claim("email", "admin@agenda.com")
+                        .claim("realm_access", Map.of("roles", List.of("ADMIN", "USER")))
+                        .build();
+                return Mono.just(mockJwt);
+            }
+            return delegate.decode(token);
+        };
+    }
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {

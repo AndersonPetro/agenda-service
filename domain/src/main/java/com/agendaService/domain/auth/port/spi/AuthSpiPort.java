@@ -9,5 +9,6 @@ public interface AuthSpiPort {
     Mono<String> createUser(String firstName, String lastName, String email, String password);
     Mono<String> findUserIdByEmail(String email);
     Mono<Void> resetPassword(String userId, String newPassword);
+    Mono<Void> deleteUser(String userId);
 }
 

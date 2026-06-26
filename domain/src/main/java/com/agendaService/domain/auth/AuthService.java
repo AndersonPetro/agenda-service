@@ -44,7 +44,16 @@ public class AuthService implements AuthApiPort {
                             .isActive(true)
                             .build();
                     return userSpiPort.save(user)
-                            .thenReturn(keycloakUserId);
+                            .thenReturn(keycloakUserId)
+                            .onErrorResume(error -> {
+                                log.error("[SIGNUP] Erro ao salvar usuário no MongoDB. Removendo do Keycloak...", error);
+                                return authSpiPort.deleteUser(keycloakUserId)
+                                        .onErrorResume(deleteError -> {
+                                            log.error("[SIGNUP] Erro ao tentar remover usuário do Keycloak após falha no MongoDB", deleteError);
+                                            return Mono.empty();
+                                        })
+                                        .then(Mono.error(error));
+                            });
                 });
     }
 

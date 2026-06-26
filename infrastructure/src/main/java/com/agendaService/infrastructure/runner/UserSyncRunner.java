@@ -32,7 +32,7 @@ public class UserSyncRunner implements ApplicationRunner {
                 return Flux.fromIterable(keycloakUsers);
             } catch (Exception e) {
                 log.error("[USER SYNC] Erro ao carregar usuários do Keycloak", e);
-                return Flux.empty();
+                return Flux.error(e);
             }
         })
         .subscribeOn(Schedulers.boundedElastic())

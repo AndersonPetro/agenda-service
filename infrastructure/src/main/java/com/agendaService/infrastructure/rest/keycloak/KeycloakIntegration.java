@@ -167,6 +167,16 @@ public class KeycloakIntegration {
                 .toBodilessEntity();
     }
 
+    public void deleteUser(String id) {
+        KeycloakAuthenticationResponse authentication = authenticateClientCredentials();
+
+        keycloakRestClient.delete()
+                .uri("/admin/realms/{realm}/users/{id}", environment.getRequiredProperty(REALM), id)
+                .header("Authorization", "Bearer " + authentication.getAccessToken())
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private String extractUserIdFromLocationHeader(ResponseEntity<Void> responseEntity) {
         return Optional.ofNullable(responseEntity.getHeaders().getLocation())
                 .map(URI::getPath)

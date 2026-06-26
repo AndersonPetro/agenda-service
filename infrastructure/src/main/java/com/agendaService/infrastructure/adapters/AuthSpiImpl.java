@@ -62,4 +62,11 @@ public class AuthSpiImpl implements AuthSpiPort {
                 .subscribeOn(Schedulers.boundedElastic())
                 .then();
     }
+
+    @Override
+    public Mono<Void> deleteUser(String userId) {
+        return Mono.fromRunnable(() -> keycloakIntegration.deleteUser(userId))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
+    }
 }
